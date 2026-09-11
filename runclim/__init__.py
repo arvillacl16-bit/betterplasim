@@ -56,6 +56,48 @@ def _noneparse(text, dtype):
     else:
         return dtype(text)
 
+from enum import IntEnum
+
+class Resolution(IntEnum):
+    T21 = 32
+    T42 = 64
+    T63 = 96
+    T85 = 128
+    T106 = 160
+    T127 = 192
+    T170 = 256
+
+T21 = Resolution.T21
+T42 = Resolution.T42
+T63 = Resolution.T63
+T85 = Resolution.T85
+T106 = Resolution.T106
+T127 = Resolution.T127
+T170 = Resolution.T170
+
+def heightmap_to_sra(imagepath: str, surfpath: str, maxelev: float, resolution: Resolution = T21):
+    from PIL import Image
+    from scipy.ndimage import zoom
+    topo = Image.open(imagepath).convert('L')
+    topo_array = np.array(topo)
+    land_array = np.where(topo_array > 0, 1., 0.)
+    topo_array *= 255 * maxelev / topo_array.max()
+    scale = resolution / topo_array.shape[1]
+    downscaled_topo = zoom(topo_array, (scale, scale), order=1)
+    downscaled_land = zoom(land_array, (scale, scale), order=1)
+    land_path = os.path.join(surfpath, '_surf_0172.sra')
+    topo_path = os.path.join(surfpath, '_surf_0129.sra')
+    land_header = [172, 0, 11111111, 0, resolution * 2, resolution, 0, 0]
+    topo_path = [129, 0, 11111111, 0, resolution * 2, resolution, 0, 0]
+    sheader = ''
+    for h in land_header:
+        sheader += ' %9d'%h
+    lines_topo = []
+    lines_land = []
+    i = 0
+    while i < resolution * resolution / 4:
+        l = ''
+        pass
 
 # def readsourcepath():
 # with open("sourcepath","r") as sf:
@@ -399,10 +441,10 @@ class Model(object):
 
     def __init__(
         self,
-        resolution="T21",
-        layers=10,
-        ncpus=4,
-        precision=8,
+        resolution: Resolution=T21,
+        layers: int=10,
+        ncpus: int=4,
+        imprecise: bool=False,
         debug=False,
         inityear=0,
         recompile=False,
@@ -412,7 +454,7 @@ class Model(object):
         source=None,
         force991=False,
         modelname="MOST_EXP",
-        outputtype=".npz",
+        outputtype=".nc",
         crashtolerant=False,
         outputfaulttolerant=False,
         hyperthreading=True,
@@ -600,78 +642,43 @@ class Model(object):
         # Depending on how the user has entered the resolution, set the appropriate number
         # of spectral modes and latitudes
         CPU_WRONG_MSG = "ExoPlaSim parallelism gives each core a horizontal slice of the planet. This cannot work if the CPU count could cannot divide the latitudinal resolution."
-        if (
-            resolution == "T21"
-            or resolution == "t21"
-            or resolution == 21
-            or resolution == 32
-        ):
+        if resolution == T21:
             if 32 % ncpus != 0:
                 raise ValueError(CPU_WRONG_MSG)
             self.nsp = 21
             self.nlats = 32
-        elif (
-            resolution == "T42"
-            or resolution == "t42"
-            or resolution == 42
-            or resolution == 64
-        ):
+        elif resolution == T42:
             if 64 % ncpus != 0:
                 raise ValueError(CPU_WRONG_MSG)
             self.nsp = 42
             self.nlats = 64
-        elif (
-            resolution == "T63"
-            or resolution == "t63"
-            or resolution == 63
-            or resolution == 96
-        ):
+        elif resolution == T63:
             if 96 % ncpus != 0:
                 raise ValueError(CPU_WRONG_MSG)
             print("WARNING: This resolution is untested.")
             self.nsp = 63
             self.nlats = 96
             force991 = True
-        elif (
-            resolution == "T85"
-            or resolution == "t85"
-            or resolution == 85
-            or resolution == 128
-        ):
+        elif resolution == T85:
             if 128 % ncpus != 0:
                 raise ValueError(CPU_WRONG_MSG)
             print("WARNING: This resolution is untested.")
             self.nsp = 85
             self.nlats = 128
-        elif (
-            resolution == "T106"
-            or resolution == "T106"
-            or resolution == 106
-            or resolution == 160
-        ):
+        elif resolution == T106:
             if 160 % ncpus != 0:
                 raise ValueError(CPU_WRONG_MSG)
             print("WARNING: This resolution is untested.")
             self.nsp = 106
             self.nlats = 160
             force991 = True
-        elif (
-            resolution == "T127"
-            or resolution == "t127"
-            or resolution == 127
-            or resolution == 192
-        ):
+        elif resolution == T127:
             if 192 % ncpus != 0:
                 raise ValueError(CPU_WRONG_MSG)
             print("WARNING: This resolution is untested.")
             self.nsp = 127
             self.nlats = 192
-        elif (
-            resolution == "T170"
-            or resolution == "t170"
-            or resolution == 170
-            or resolution == 256
-        ):
+        elif resolution == T170:
             if 256 % ncpus != 0:
                 raise ValueError(CPU_WRONG_MSG)
             print("WARNING: This resolution is untested.")
@@ -714,7 +721,7 @@ class Model(object):
             os.system(
                 "cwd=$(pwd) && "
                 + "cd %s && ./compile.sh -n %d -p %d -r T%d -v %d "
-                % (sourcedir, self.ncpus, precision, self.nsp, self.layers)
+                % (sourcedir, self.ncpus, 4 if imprecise else 8, self.nsp, self.layers)
                 + extraflags
                 + " &&"
                 + "cd $cwd"
