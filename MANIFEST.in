@@ -1,19 +1,19 @@
 include *.txt
 include *.TXT
 include README*
-recursive-include exoplasim *
-prune exoplasim/cat*
-prune exoplasim/Cat_UG_00
-prune exoplasim/glacier
-prune exoplasim/images
-prune exoplasim/octave
-prune exoplasim/Plasim_Report
-prune exoplasim/Plasim_RM_16
-prune exoplasim/Plasim_UG_16
-prune exoplasim/puma
-prune exoplasim/Puma_UG_17
-prune exoplasim/ug_cat_00
-prune exoplasim/sam
-prune exoplasim/lsg
-prune exoplasim/tools
-prune exoplasim/plasim/run/*.sra
+recursive-include runclim *
+prune runclim/cat*
+prune runclim/Cat_UG_00
+prune runclim/glacier
+prune runclim/images
+prune runclim/octave
+prune runclim/Plasim_Report
+prune runclim/Plasim_RM_16
+prune runclim/Plasim_UG_16
+prune runclim/puma
+prune runclim/Puma_UG_17
+prune runclim/ug_cat_00
+prune runclim/sam
+prune runclim/lsg
+prune runclim/tools
+prune runclim/plasim/run/*.sra
