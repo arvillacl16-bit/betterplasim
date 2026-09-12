@@ -75,11 +75,11 @@ T106 = Resolution.T106
 T127 = Resolution.T127
 T170 = Resolution.T170
 
-def heightmap_to_sra(imagepath: str, surfpath: str, maxelev: float, resolution: Resolution = T21):
+def heightmaptosra(imagepath: str, surfpath: str, maxelev: float, resolution: Resolution = T21):
     from PIL import Image
     from scipy.ndimage import zoom
     topo = Image.open(imagepath).convert('L')
-    topo_array = np.array(topo)
+    topo_array = np.array(topo).astype(float)
     land_array = np.where(topo_array > 0, 1., 0.)
     topo_array *= 255 * maxelev / topo_array.max()
     scale = resolution / topo_array.shape[1]
@@ -88,16 +88,29 @@ def heightmap_to_sra(imagepath: str, surfpath: str, maxelev: float, resolution: 
     land_path = os.path.join(surfpath, '_surf_0172.sra')
     topo_path = os.path.join(surfpath, '_surf_0129.sra')
     land_header = [172, 0, 11111111, 0, resolution * 2, resolution, 0, 0]
-    topo_path = [129, 0, 11111111, 0, resolution * 2, resolution, 0, 0]
-    sheader = ''
-    for h in land_header:
-        sheader += ' %9d'%h
-    lines_topo = []
-    lines_land = []
-    i = 0
-    while i < resolution * resolution / 4:
-        l = ''
-        pass
+    topo_header = [129, 0, 11111111, 0, resolution * 2, resolution, 0, 0]
+    sheader_land = ''
+    sheader_topo = ''
+    for h1, h2 in zip(land_header, topo_header):
+        sheader_land += ' %9d'%h1
+        sheader_topo += ' %9d'%h2
+    lines_topo = [sheader_topo + '\n']
+    lines_land = [sheader_land + '\n']
+    for row_topo, row_land in zip(downscaled_topo, downscaled_land):
+        line_topo = ''
+        line_land = ''
+        for data_topo, data_land in zip(row_topo, row_land):
+            line_topo += f" {data_topo:.2f}"
+            line_land += f" {data_land:.3f}"
+        line_topo += '\n'
+        line_land += '\n'
+        lines_topo.append(line_topo)
+        lines_land.append(line_land)
+    with open(land_path, 'x') as f:
+        f.writelines(lines_land)
+    with open(topo_path, 'x') as f:
+        f.writelines(lines_topo)
+    
 
 # def readsourcepath():
 # with open("sourcepath","r") as sf:
